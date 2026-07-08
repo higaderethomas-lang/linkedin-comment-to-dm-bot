@@ -1,0 +1,5 @@
+{
+  "_comment": "Personnes à NE JAMAIS contacter (déjà contactées à la main, clients…). Match par 'slug' (après /in/) ou 'nom' (insensible casse/accents). Copie ce fichier en exclusion_list.json.",
+  "slugs": [],
+  "names": []
+}

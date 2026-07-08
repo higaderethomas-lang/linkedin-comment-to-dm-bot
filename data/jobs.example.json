@@ -1,0 +1,17 @@
+[
+  {
+    "id": "exemple-1",
+    "label": "Newsletter",
+    "post_url": "https://www.linkedin.com/posts/ton-slug_ton-post-activity-XXentity",
+    "trigger": "newsletter",
+    "doc_url": "https://exemple.com/mon-document",
+    "active": true,
+    "dm_templates": [],
+    "confirm_templates": [],
+    "connect_templates": [],
+    "handle_degrees": ["1st", "2nd", "3rd"],
+    "relance_enabled": false,
+    "relance_delay_days": 7,
+    "relance_templates": []
+  }
+]

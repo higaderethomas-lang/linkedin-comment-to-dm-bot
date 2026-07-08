@@ -1,0 +1,9 @@
+{
+  "enabled": false,
+  "base_url": "http://localhost:2785",
+  "api_key": "",
+  "session_id": "",
+  "owner_chat_id": "",
+  "webhook_secret": "",
+  "notify_events": true
+}

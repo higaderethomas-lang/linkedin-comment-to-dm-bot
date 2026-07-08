@@ -1,0 +1,20 @@
+# Secrets & données réelles — NE JAMAIS COMMITER
+data/*.db
+data/linkedin_cookies.json
+data/jobs.json
+data/whatsapp_config.json
+data/exclusion_list.json
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Logs & divers
+logs/
+*.log
+*.bak*
+.DS_Store
+.env
+node_modules/

@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkedIn Bot — CHARLIE</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f7;
+      color: #1a1a2e;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    header h1 span { color: #0a66c2; }
+    header p { margin-top: 6px; color: #666; font-size: 14px; }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e0e0e8;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .card h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 24px;
+    }
+
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+    input[type="text"], input[type="url"] {
+      width: 100%;
+      background: #f5f5f7;
+      border: 1px solid #d0d0da;
+      border-radius: 10px;
+      padding: 11px 14px;
+      color: #1a1a2e;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="url"]:focus { border-color: #0a66c2; }
+    input::placeholder { color: #aaa; }
+
+    /* Jobs list */
+    #jobs-list { display: flex; flex-direction: column; gap: 12px; }
+    .job-item {
+      background: #f5f5f7;
+      border: 1px solid #e0e0e8;
+      border-radius: 12px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .job-num {
+      background: #0a66c2;
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .job-info { flex: 1; min-width: 0; }
+    .job-label { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+    .job-meta { font-size: 12px; color: #888; line-height: 1.6; }
+    .job-meta span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .job-trigger {
+      display: inline-block;
+      background: #e8f0fe;
+      color: #0a66c2;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .job-pending-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #c2410c;
+      border-radius: 20px;
+      padding: 2px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-top: 6px;
+      margin-left: 4px;
+      animation: fadein 0.3s ease;
+    }
+    .job-pending-badge.done {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #16a34a;
+    }
+    @keyframes fadein { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+
+    /* Compteurs session */
+    .session-counters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .counter-box {
+      flex: 1;
+      background: #f5f5f7;
+      border: 1px solid #e0e0e8;
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .counter-box .counter-val {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0a66c2;
+      line-height: 1;
+    }
+    .counter-box .counter-label {
+      font-size: 11px;
+      color: #888;
+      font-weight: 500;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .job-item.disabled {
+      opacity: 0.45;
+    }
+    .job-item.disabled .job-num {
+      background: #aaa;
+    }
+    .job-toggle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .job-toggle .toggle { width: 34px; height: 18px; }
+    .job-toggle .slider { border-radius: 18px; }
+    .job-toggle .slider::before { width: 13px; height: 13px; left: 2px; top: 2px; }
+    .job-toggle input:checked + .slider { background: #22c55e; }
+    .job-toggle input:checked + .slider::before { transform: translateX(15px); background: #fff; }
+    .job-toggle span { font-size: 10px; color: #aaa; }
+    .job-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .btn-del, .btn-edit {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 7px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+      line-height: 1;
+    }
+    .btn-del  { color: #ccc; }
+    .btn-del:hover  { color: #dc2626; background: #fff5f5; }
+    .btn-edit { color: #bbb; }
+    .btn-edit:hover { color: #0a66c2; background: #f0f7ff; }
+
+    /* Modal édition */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: flex-start;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 32px 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 36px;
+      width: 100%;
+      max-width: 820px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      margin: auto;
+    }
+    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .modal-section {
+      border-top: 1px solid #e8e8f0;
+      margin-top: 20px;
+      padding-top: 16px;
+    }
+    .modal-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 10px;
+    }
+    .modal-section-sub {
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 12px;
+      margin-top: -6px;
+    }
+    .tpl-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .tpl-row { display: flex; gap: 6px; align-items: flex-start; }
+    .tpl-row textarea {
+      flex: 1;
+      background: #f5f5f7;
+      border: 1px solid #d0d0da;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #1a1a2e;
+      font-size: 14px;
+      font-family: inherit;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 130px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .tpl-row textarea:focus { border-color: #0a66c2; }
+    .btn-tpl-del {
+      background: none; border: none;
+      color: #ccc; font-size: 16px;
+      cursor: pointer; padding: 4px 6px;
+      border-radius: 6px; flex-shrink: 0;
+      margin-top: 4px;
+      transition: color 0.15s;
+    }
+    .btn-tpl-del:hover { color: #dc2626; }
+    .btn-tpl-add {
+      width: 100%;
+      padding: 8px;
+      background: #f0f7ff;
+      border: 1.5px dashed #0a66c2;
+      border-radius: 8px;
+      color: #0a66c2;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 2px;
+    }
+    .btn-tpl-add:hover { background: #e0eeff; }
+    .var-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .var-chip {
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .var-chip:hover { opacity: 0.75; }
+    .var-chip.name { background: #dcfce7; color: #16a34a; }
+    .var-chip.link { background: #fff3e0; color: #d97706; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-save {
+      flex: 1; padding: 12px;
+      background: #0a66c2; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .btn-cancel {
+      flex: 1; padding: 12px;
+      background: #e8e8f0; color: #444;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #aaa;
+      font-size: 14px;
+      padding: 20px 0;
+    }
+
+    /* Add job form */
+    .add-form { border-top: 1px solid #e0e0e8; margin-top: 20px; padding-top: 20px; }
+    .add-form h3 { font-size: 13px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 16px; }
+
+    .btn-add {
+      width: 100%;
+      padding: 12px;
+      background: #f0f7ff;
+      border: 1.5px dashed #0a66c2;
+      border-radius: 10px;
+      color: #0a66c2;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    .btn-add:hover { background: #e0eeff; }
+
+    /* Controls */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .toggle-row label { margin: 0; color: #666; font-size: 13px; cursor: pointer; }
+    .toggle { position: relative; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #d0d0da;
+      border-radius: 22px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 16px; height: 16px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle input:checked + .slider { background: #0a66c225; }
+    .toggle input:checked + .slider::before { transform: translateX(18px); background: #0a66c2; }
+
+    .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #d0d0da;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .dot.running {
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e88;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    #status-text { font-size: 14px; color: #888; }
+
+    .btn-row { display: flex; gap: 12px; }
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #btn-start { background: #0a66c2; color: #fff; }
+    #btn-stop  { background: #e8e8f0; color: #1a1a2e; }
+
+    /* Logs */
+    #log-box {
+      background: #f5f5f7;
+      border: 1px solid #e0e0e8;
+      border-radius: 10px;
+      padding: 16px;
+      height: 340px;
+      overflow-y: auto;
+      font-family: "SF Mono", "Fira Code", monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #333;
+    }
+    #log-box .line { white-space: pre-wrap; word-break: break-all; }
+    #log-box .line.error { color: #dc2626; }
+    #log-box .line.warn  { color: #d97706; }
+    #log-box .line.info  { color: #333; }
+    .log-status { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; transition: all .2s; }
+    .log-status.connected  { color: #047857; background: #d1fae5; }
+    .log-status.connecting { color: #92400e; background: #fef3c7; }
+    .log-status.lost       { color: #b45309; background: #fef3c7; animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+
+    #btn-clear {
+      flex: 0 0 auto;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      background: #e8e8f0;
+      color: #666;
+      border-radius: 8px;
+      width: auto;
+    }
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .log-header h2 { margin: 0; }
+
+    /* Results */
+    #results-list { display: flex; flex-direction: column; gap: 8px; }
+    .result-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    .result-item.ok   { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .result-item.fail { background: #fff5f5; border: 1px solid #fecaca; }
+    .result-icon { font-size: 16px; flex-shrink: 0; }
+    .result-name { font-weight: 600; flex: 1; }
+    .result-action { font-size: 12px; color: #888; }
+    .result-time { font-size: 11px; color: #bbb; flex-shrink: 0; }
+
+    /* Onglets */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 24px;
+      width: 100%;
+      max-width: 640px;
+      background: #e8e8f0;
+      border-radius: 12px;
+      padding: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 9px;
+      background: transparent;
+      color: #666;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      transform: none;
+    }
+    .tab-btn:active { transform: none; }
+    .tab-btn.active { background: #fff; color: #0a66c2; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .tab-pane { display: none; width: 100%; }
+    .tab-pane.active { display: block; }
+
+    /* DB Tab */
+    .db-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .status-badge .cnt { font-size: 16px; font-weight: 800; }
+    .badge-a_traiter   { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+    .badge-a_connecter { background: #fff7ed; border-color: #fed7aa; color: #c2410c; }
+    .badge-a_convertir { background: #f3e8ff; border-color: #d8b4fe; color: #7c3aed; }
+    .badge-en_attente  { background: #fefce8; border-color: #fde047; color: #854d0e; }
+    .badge-traite      { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+    .badge-ignore      { background: #f5f5f7; border-color: #d0d0da; color: #666; }
+    .badge-pending_scan{ background: #f8f8fa; border-color: #e0e0e8; color: #aaa; }
+
+    .db-toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .db-toolbar select {
+      background: #f5f5f7;
+      border: 1px solid #d0d0da;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: #1a1a2e;
+      outline: none;
+      cursor: pointer;
+    }
+    .btn-scan {
+      padding: 9px 18px;
+      background: #0a66c2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      width: auto;
+      flex: none;
+    }
+    .btn-scan:hover { opacity: 0.85; }
+    .btn-scan:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .db-table-wrap {
+      overflow-x: auto;
+      border-radius: 10px;
+      border: 1px solid #e0e0e8;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: #f5f5f7;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      border-bottom: 1px solid #e0e0e8;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f8;
+      vertical-align: middle;
+      color: #1a1a2e;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+    .td-name a { color: #0a66c2; text-decoration: none; font-weight: 600; }
+    .td-name a:hover { text-decoration: underline; }
+    .td-degree {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .deg-1st { background: #dcfce7; color: #15803d; }
+    .deg-2nd { background: #fff3e0; color: #d97706; }
+    .deg-3rd { background: #fee2e2; color: #dc2626; }
+    .deg-null { background: #f5f5f7; color: #aaa; }
+
+    .st-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+    .st-a_traiter   { background: #dbeafe; color: #1d4ed8; }
+    .st-a_connecter { background: #fff7ed; color: #c2410c; }
+    .st-a_convertir { background: #f3e8ff; color: #7c3aed; }
+    .st-en_attente  { background: #fefce8; color: #854d0e; }
+    .st-traite      { background: #f0fdf4; color: #15803d; }
+    .st-ignore      { background: #f5f5f7; color: #666; }
+    .st-pending_scan{ background: #f8f8fa; color: #bbb; }
+
+    .btn-reprocess {
+      padding: 4px 10px;
+      background: #f0f7ff;
+      color: #0a66c2;
+      border: 1px solid #93c5fd;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      width: auto;
+      flex: none;
+      white-space: nowrap;
+    }
+    .btn-reprocess:hover { background: #dbeafe; }
+
+    .daily-limits {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .daily-box {
+      flex: 1;
+      background: #f5f5f7;
+      border: 1px solid #e0e0e8;
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-align: center;
+    }
+    .daily-box .daily-val { font-size: 22px; font-weight: 800; color: #0a66c2; }
+    .daily-box .daily-lbl { font-size: 10px; color: #888; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LinkedIn Bot <span>CHARLIE</span></h1>
+  <p>Automatisation des commentaires → DM</p>
+</header>
+
+<!-- Onglets de navigation -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('bot')">🤖 Bot</button>
+  <button class="tab-btn" onclick="switchTab('results')">📊 Résultats</button>
+  <button class="tab-btn" onclick="switchTab('db')">🗄️ Base de données</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  ONGLET BOT                                                           -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane active" id="tab-bot">
+
+<!-- Jobs card -->
+<div class="card">
+  <h2>Posts configurés</h2>
+
+  <div id="jobs-list">
+    <div class="empty-state">Aucun post configuré</div>
+  </div>
+
+  <!-- Formulaire ajout -->
+  <div class="add-form">
+    <h3>Ajouter un post</h3>
+    <div class="field">
+      <label>Nom (optionnel)</label>
+      <input id="new-label" type="text" placeholder="ex : Post Lemlist Mai" />
+    </div>
+    <div class="field">
+      <label>URL du Post LinkedIn</label>
+      <input id="new-post-url" type="url" placeholder="https://www.linkedin.com/posts/..." />
+    </div>
+    <div class="field">
+      <label>Mot trigger (ex : LEMLIST)</label>
+      <input id="new-trigger" type="text" placeholder="LEMLIST" />
+    </div>
+    <div class="field">
+      <label>URL du Document à envoyer</label>
+      <input id="new-doc-url" type="url" placeholder="https://drive.google.com/..." />
+    </div>
+    <button class="btn-add" onclick="addJob()">+ Ajouter ce post</button>
+  </div>
+</div>
+
+<!-- Modale édition -->
+<div class="modal-overlay" id="edit-modal" onclick="closeEditOnOverlay(event)">
+  <div class="modal">
+    <h3>✏️ Modifier le post</h3>
+    <div class="field">
+      <label>Nom</label>
+      <input id="edit-label" type="text" placeholder="ex : Post Lemlist Mai" />
+    </div>
+    <div class="field">
+      <label>URL du Post LinkedIn</label>
+      <input id="edit-post-url" type="url" placeholder="https://www.linkedin.com/posts/..." />
+    </div>
+    <div class="field">
+      <label>Mot trigger</label>
+      <input id="edit-trigger" type="text" placeholder="LEMLIST" />
+    </div>
+    <div class="field">
+      <label>URL du Document</label>
+      <input id="edit-doc-url" type="url" placeholder="https://drive.google.com/..." />
+    </div>
+    <!-- Degrés de connexion -->
+    <div class="modal-section">
+      <div class="modal-section-title">👥 Cas à traiter</div>
+      <div class="modal-section-sub">Sélectionne les degrés de connexion que le bot doit gérer</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; font-weight:500; color:#1a1a2e;">
+          <input type="checkbox" id="deg-1st" style="width:16px;height:16px;cursor:pointer;" />
+          <span>🟢 <strong>1ère connexion</strong> — envoie le DM directement</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; font-weight:500; color:#1a1a2e;">
+          <input type="checkbox" id="deg-2nd" style="width:16px;height:16px;cursor:pointer;" />
+          <span>🟡 <strong>2ème connexion</strong> — commente "connectez-vous à moi"</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:14px; font-weight:500; color:#1a1a2e;">
+          <input type="checkbox" id="deg-3rd" style="width:16px;height:16px;cursor:pointer;" />
+          <span>🔴 <strong>3ème connexion</strong> — commente "connectez-vous à moi"</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- DM Template -->
+    <div class="modal-section">
+      <div class="modal-section-title">📤 Template DM</div>
+      <div class="modal-section-sub">Message envoyé en privé. Variables disponibles :</div>
+      <div class="var-chips">
+        <button class="var-chip name" onclick="insertVar('edit-dm-tpl-0','{first_name}')">First Name</button>
+        <button class="var-chip link" onclick="insertVar('edit-dm-tpl-0','{doc_url}')">Resource Link</button>
+      </div>
+      <div class="tpl-list" id="dm-tpl-list"></div>
+      <button class="btn-tpl-add" onclick="addTpl('dm')">+ Ajouter une variante DM</button>
+    </div>
+
+    <!-- Confirm templates -->
+    <div class="modal-section">
+      <div class="modal-section-title">✅ Commentaires "bien reçu"</div>
+      <div class="modal-section-sub">Posté sous le commentaire après envoi du DM. Variable : <code>{first_name}</code></div>
+      <div class="tpl-list" id="confirm-tpl-list"></div>
+      <button class="btn-tpl-add" onclick="addTpl('confirm')">+ Ajouter une variante</button>
+    </div>
+
+    <!-- Connect templates -->
+    <div class="modal-section">
+      <div class="modal-section-title">🤝 Commentaires "connectez-vous"</div>
+      <div class="modal-section-sub">Posté quand on ne peut pas encore envoyer de DM. Variable : <code>{first_name}</code></div>
+      <div class="tpl-list" id="connect-tpl-list"></div>
+      <button class="btn-tpl-add" onclick="addTpl('connect')">+ Ajouter une variante</button>
+    </div>
+
+    <!-- Relance -->
+    <div class="modal-section">
+      <div class="modal-section-title">🔄 Relance automatique</div>
+      <div class="modal-section-sub">Renvoie un DM aux personnes qui ont déjà reçu le document, X jours après l'envoi initial.</div>
+      <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin:10px 0; font-size:14px; font-weight:500; color:#1a1a2e;">
+        <input type="checkbox" id="edit-relance-enabled" style="width:16px;height:16px;cursor:pointer;" />
+        <span><strong>Activer la relance</strong> pour ce post</span>
+      </label>
+      <div class="field" style="margin-top:6px;">
+        <label>Délai avant relance (jours après le DM initial)</label>
+        <input id="edit-relance-days" type="number" min="1" step="1" value="5" style="width:120px;" />
+      </div>
+      <div class="modal-section-sub" style="margin-top:8px;">Message(s) de relance. Variable : <code>{first_name}</code></div>
+      <div class="tpl-list" id="relance-tpl-list"></div>
+      <button class="btn-tpl-add" onclick="addTpl('relance')">+ Ajouter une variante</button>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">Annuler</button>
+      <button class="btn-save" onclick="saveEdit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Controls card -->
+<div class="card">
+  <h2>Contrôles</h2>
+
+  <div class="session-counters">
+    <div class="counter-box">
+      <div class="counter-val" id="counter-dms">0</div>
+      <div class="counter-label">💬 DMs envoyés</div>
+    </div>
+    <div class="counter-box">
+      <div class="counter-val" id="counter-comments">0</div>
+      <div class="counter-label">✍️ Commentaires</div>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <label class="toggle">
+      <input type="checkbox" id="toggle-visible" />
+      <span class="slider"></span>
+    </label>
+    <label for="toggle-visible">Afficher le navigateur (mode debug) — décoché = arrière-plan</label>
+  </div>
+
+  <div class="status-row">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Bot arrêté</span>
+  </div>
+
+  <div class="btn-row">
+    <button id="btn-start" onclick="startBot()">▶ Démarrer</button>
+    <button id="btn-stop" onclick="stopBot()" disabled>⏹ Arrêter</button>
+  </div>
+  <div style="margin-top: 12px;">
+    <button id="btn-login" onclick="reconnectLinkedIn()" style="flex:none; width:100%; background:#f0f7ff; color:#0a66c2; border: 1.5px solid #0a66c2; font-size:13px; padding:10px;">
+      🔗 Reconnecter LinkedIn
+    </button>
+  </div>
+</div>
+
+<!-- Logs card -->
+<div class="card">
+  <div class="log-header">
+    <h2>Logs en temps réel</h2>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="log-status" class="log-status connecting">● Connexion…</span>
+      <button id="btn-clear" onclick="clearLogs()">Effacer</button>
+    </div>
+  </div>
+  <div id="log-box"></div>
+</div>
+
+</div><!-- /tab-bot -->
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  ONGLET RÉSULTATS                                                     -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-results">
+<div class="card">
+  <h2>Résultats de la session</h2>
+  <div id="results-list2">
+    <div class="empty-state">Aucun résultat pour l'instant</div>
+  </div>
+</div>
+</div><!-- /tab-results -->
+
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<!--  ONGLET BASE DE DONNÉES                                               -->
+<!-- ══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-pane" id="tab-db">
+<div class="card" style="max-width:900px;">
+  <h2>Base de données contacts</h2>
+
+  <!-- Compteurs journaliers -->
+  <div class="daily-limits">
+    <div class="daily-box">
+      <div class="daily-val" id="db-dms-today">0</div>
+      <div class="daily-lbl">DMs aujourd'hui</div>
+    </div>
+    <div class="daily-box">
+      <div class="daily-val" id="db-comments-today">0</div>
+      <div class="daily-lbl">Commentaires aujourd'hui</div>
+    </div>
+  </div>
+
+  <!-- Badges par statut -->
+  <div class="db-stats" id="db-stats-badges"></div>
+
+  <!-- Toolbar -->
+  <div class="db-toolbar">
+    <button class="btn-scan" id="btn-scan" onclick="triggerScan()">🔍 Scanner maintenant</button>
+    <select id="db-filter-job" onchange="loadContacts()">
+      <option value="">Tous les jobs</option>
+    </select>
+    <select id="db-filter-status" onchange="loadContacts()">
+      <option value="">Tous les statuts</option>
+      <option value="a_traiter">À traiter</option>
+      <option value="a_connecter">À connecter</option>
+      <option value="a_convertir">À convertir</option>
+      <option value="en_attente">En attente</option>
+      <option value="traite">Traité</option>
+      <option value="ignore">Ignoré</option>
+      <option value="pending_scan">Pending scan</option>
+    </select>
+  </div>
+
+  <!-- Tableau contacts -->
+  <div class="db-table-wrap">
+    <table id="db-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Degré</th>
+          <th>Statut</th>
+          <th>Job</th>
+          <th>Dernière action</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="db-tbody">
+        <tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px;">Chargement...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div><!-- /tab-db -->
+
+<script>
+  let evtSource = null
+  let logReconnectTimer = null
+  let logReconnectDelay = 1000
+  connectLogs()
+
+  // ── Jobs ──────────────────────────────────────────────────────────────────
+  async function loadJobs() {
+    const res = await fetch('/jobs')
+    const jobs = await res.json()
+    renderJobs(jobs)
+  }
+
+  function renderJobs(jobs) {
+    const el = document.getElementById('jobs-list')
+    if (!jobs.length) {
+      el.innerHTML = '<div class="empty-state">Aucun post configuré</div>'
+      return
+    }
+    el.innerHTML = jobs.map((j, i) => `
+      <div class="job-item${j.active === false ? ' disabled' : ''}" id="job-${j.id}">
+        <div class="job-num">${i + 1}</div>
+        <div class="job-info">
+          <div class="job-label">${esc(j.label)}</div>
+          <div class="job-meta">
+            <span title="${esc(j.post_url)}">🔗 ${esc(j.post_url)}</span>
+            <span title="${esc(j.doc_url)}">📄 ${esc(j.doc_url)}</span>
+          </div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:4px;">
+            ${j.trigger ? `<span class="job-trigger">🎯 ${esc(j.trigger)}</span>` : ''}
+            <span class="job-pending-badge" id="pending-${j.id}" style="display:none"></span>
+          </div>
+        </div>
+        <div class="job-toggle">
+          <label class="toggle">
+            <input type="checkbox" ${j.active !== false ? 'checked' : ''} onchange="toggleJob('${j.id}', this)">
+            <span class="slider"></span>
+          </label>
+          <span>${j.active !== false ? 'Actif' : 'Inactif'}</span>
+        </div>
+        <div class="job-actions">
+          <button class="btn-edit" onclick="openEdit('${j.id}')" title="Modifier">✏️</button>
+          <button class="btn-del" onclick="deleteJob('${j.id}')" title="Supprimer">✕</button>
+        </div>
+      </div>
+    `).join('')
+  }
+
+  async function addJob() {
+    const label   = document.getElementById('new-label').value.trim()
+    const postUrl = document.getElementById('new-post-url').value.trim()
+    const trigger = document.getElementById('new-trigger').value.trim()
+    const docUrl  = document.getElementById('new-doc-url').value.trim()
+
+    if (!postUrl || !docUrl) {
+      appendLog('⚠️  Remplissez l\'URL du post et du document.')
+      return
+    }
+
+    await fetch('/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label, post_url: postUrl, trigger, doc_url: docUrl })
+    })
+
+    document.getElementById('new-label').value    = ''
+    document.getElementById('new-post-url').value = ''
+    document.getElementById('new-trigger').value  = ''
+    document.getElementById('new-doc-url').value  = ''
+
+    loadJobs()
+  }
+
+  // ── Edit modal ────────────────────────────────────────────────────────────
+  let editingId = null
+
+  // Defaults affichés si le job n'a pas de templates custom
+  const DEFAULT_DM = [
+`Bonjour {first_name},
+
+Comme promis, voici le document 👇
+
+{doc_url}
+
+Thomas`]
+  const DEFAULT_CONFIRM = ["Bien reçu en DM {first_name} 👌", "C'est dans votre boîte {first_name} 📩", "Envoyé en DM {first_name} ✅"]
+  const DEFAULT_CONNECT = ["Bonjour {first_name} — connectez-vous à moi d'abord pour que je puisse vous envoyer ça 🤝"]
+  const DEFAULT_RELANCE = [
+`Bonjour {first_name},
+
+Avez-vous eu le temps de regarder le document que je vous ai envoyé ?
+
+Dites-moi une problématique que vous rencontrez et je vous envoie une ressource gratuite adaptée 🙂
+
+Thomas`]
+
+  function renderTplList(containerId, values, type) {
+    const el = document.getElementById(containerId)
+    el.innerHTML = values.map((v, i) => `
+      <div class="tpl-row" id="${type}-row-${i}">
+        <textarea id="${type}-tpl-${i}" rows="3">${esc(v)}</textarea>
+        <button class="btn-tpl-del" onclick="removeTpl('${type}',${i})" title="Supprimer">✕</button>
+      </div>
+    `).join('')
+  }
+
+  function getTplValues(type) {
+    const list = document.getElementById(`${type}-tpl-list`)
+    return Array.from(list.querySelectorAll('textarea')).map(t => t.value)
+  }
+
+  function addTpl(type) {
+    const vals = getTplValues(type)
+    vals.push('')
+    renderTplList(`${type}-tpl-list`, vals, type)
+    // Focus sur le nouveau champ
+    const textareas = document.getElementById(`${type}-tpl-list`).querySelectorAll('textarea')
+    textareas[textareas.length - 1].focus()
+  }
+
+  function removeTpl(type, idx) {
+    const vals = getTplValues(type)
+    if (vals.length <= 1) return  // garder au moins 1
+    vals.splice(idx, 1)
+    renderTplList(`${type}-tpl-list`, vals, type)
+  }
+
+  function insertVar(id, variable) {
+    // Insère la variable à la position du curseur dans le textarea actif
+    const list = document.getElementById('dm-tpl-list')
+    const focused = list.querySelector('textarea:focus') || list.querySelectorAll('textarea')[0]
+    if (!focused) return
+    const start = focused.selectionStart
+    const end = focused.selectionEnd
+    focused.value = focused.value.slice(0, start) + variable + focused.value.slice(end)
+    focused.selectionStart = focused.selectionEnd = start + variable.length
+    focused.focus()
+  }
+
+  function openEdit(id) {
+    fetch('/jobs').then(r => r.json()).then(jobs => {
+      const job = jobs.find(j => j.id === id)
+      if (!job) return
+      editingId = id
+      document.getElementById('edit-label').value    = job.label    || ''
+      document.getElementById('edit-post-url').value = job.post_url || ''
+      document.getElementById('edit-trigger').value  = job.trigger  || ''
+      document.getElementById('edit-doc-url').value  = job.doc_url  || ''
+
+      renderTplList('dm-tpl-list',      job.dm_templates?.length      ? job.dm_templates      : DEFAULT_DM,      'dm')
+      renderTplList('confirm-tpl-list', job.confirm_templates?.length ? job.confirm_templates : DEFAULT_CONFIRM, 'confirm')
+      renderTplList('connect-tpl-list', job.connect_templates?.length ? job.connect_templates : DEFAULT_CONNECT, 'connect')
+
+      const degrees = job.handle_degrees || ['1st', '2nd', '3rd']
+      document.getElementById('deg-1st').checked = degrees.includes('1st')
+      document.getElementById('deg-2nd').checked = degrees.includes('2nd')
+      document.getElementById('deg-3rd').checked = degrees.includes('3rd')
+
+      // Relance
+      document.getElementById('edit-relance-enabled').checked = !!job.relance_enabled
+      document.getElementById('edit-relance-days').value = job.relance_delay_days || 5
+      renderTplList('relance-tpl-list', job.relance_templates?.length ? job.relance_templates : DEFAULT_RELANCE, 'relance')
+
+      document.getElementById('edit-modal').classList.add('open')
+    })
+  }
+
+  function closeEdit() {
+    document.getElementById('edit-modal').classList.remove('open')
+    editingId = null
+  }
+
+  function closeEditOnOverlay(e) {
+    if (e.target === document.getElementById('edit-modal')) closeEdit()
+  }
+
+  async function saveEdit() {
+    if (!editingId) return
+    const payload = {
+      label:             document.getElementById('edit-label').value.trim(),
+      post_url:          document.getElementById('edit-post-url').value.trim(),
+      trigger:           document.getElementById('edit-trigger').value.trim(),
+      doc_url:           document.getElementById('edit-doc-url').value.trim(),
+      dm_templates:      getTplValues('dm').filter(t => t.trim()),
+      confirm_templates: getTplValues('confirm').filter(t => t.trim()),
+      connect_templates: getTplValues('connect').filter(t => t.trim()),
+      handle_degrees:    ['1st','2nd','3rd'].filter(d => document.getElementById('deg-'+d).checked),
+      relance_enabled:    document.getElementById('edit-relance-enabled').checked,
+      relance_delay_days: parseInt(document.getElementById('edit-relance-days').value, 10) || 5,
+      relance_templates:  getTplValues('relance').filter(t => t.trim()),
+    }
+    if (payload.handle_degrees.length === 0) {
+      appendLog('⚠️  Sélectionne au moins un degré de connexion.')
+      return
+    }
+    if (!payload.post_url || !payload.doc_url) {
+      appendLog('⚠️  Remplissez l\'URL du post et du document.')
+      return
+    }
+    await fetch(`/jobs/${editingId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    closeEdit()
+    loadJobs()
+  }
+
+  async function toggleJob(id, checkbox) {
+    await fetch(`/jobs/${id}`, { method: 'PATCH' })
+    loadJobs()
+  }
+
+  async function deleteJob(id) {
+    await fetch(`/jobs/${id}`, { method: 'DELETE' })
+    loadJobs()
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+
+  // ── Bot ───────────────────────────────────────────────────────────────────
+  async function startBot() {
+    const visible = document.getElementById('toggle-visible').checked
+    const res = await fetch('/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ headless: !visible })
+    })
+    const data = await res.json()
+    appendLog(data.message)
+    if (data.ok) setRunning(true)
+  }
+
+  async function stopBot() {
+    const res = await fetch('/stop', { method: 'POST' })
+    const data = await res.json()
+    appendLog(data.message)
+    setRunning(false)
+  }
+
+  function setRunning(running) {
+    document.getElementById('status-dot').className = 'dot' + (running ? ' running' : '')
+    document.getElementById('status-text').textContent = running ? 'Bot en cours...' : 'Bot arrêté'
+    document.getElementById('btn-start').disabled = running
+    document.getElementById('btn-stop').disabled = !running
+    if (running) startPollingResults()
+    else stopPollingResults()
+  }
+
+  // ── Logs ──────────────────────────────────────────────────────────────────
+  function setLogStatus(state) {
+    const el = document.getElementById('log-status')
+    if (!el) return
+    el.classList.remove('connected', 'connecting', 'lost')
+    if (state === 'connected')      { el.classList.add('connected');  el.textContent = '● En direct' }
+    else if (state === 'lost')      { el.classList.add('lost');       el.textContent = '● Reconnexion…' }
+    else                            { el.classList.add('connecting'); el.textContent = '● Connexion…' }
+  }
+
+  function connectLogs() {
+    if (logReconnectTimer) { clearTimeout(logReconnectTimer); logReconnectTimer = null }
+    if (evtSource) { try { evtSource.close() } catch (e) {} }
+    setLogStatus('connecting')
+    evtSource = new EventSource('/logs')
+
+    evtSource.onopen = () => { setLogStatus('connected'); logReconnectDelay = 1000 }
+
+    evtSource.onmessage = e => {
+      setLogStatus('connected')
+      logReconnectDelay = 1000
+      // Le message de bienvenue du serveur n'apporte rien à l'utilisateur → on l'ignore
+      if (e.data && e.data.includes('Connecté au flux de logs')) return
+      appendLog(e.data)
+    }
+
+    evtSource.onerror = () => {
+      // Pas de spam dans les logs : on bascule juste le badge + reconnexion auto (backoff léger)
+      setLogStatus('lost')
+      try { evtSource.close() } catch (e) {}
+      logReconnectTimer = setTimeout(connectLogs, logReconnectDelay)
+      logReconnectDelay = Math.min(Math.round(logReconnectDelay * 1.5), 5000)
+    }
+  }
+
+  function appendLog(text) {
+    const box = document.getElementById('log-box')
+    const line = document.createElement('div')
+    line.className = 'line'
+    if (text.includes('[ERROR]'))        line.classList.add('error')
+    else if (text.includes('[WARNING]')) line.classList.add('warn')
+    else                                  line.classList.add('info')
+    line.textContent = text
+    box.appendChild(line)
+    box.scrollTop = box.scrollHeight
+  }
+
+  function clearLogs() {
+    document.getElementById('log-box').innerHTML = ''
+  }
+
+  // ── Session stats ─────────────────────────────────────────────────────────
+  async function loadSessionStats() {
+    try {
+      const res = await fetch('/session-stats')
+      const s = await res.json()
+      document.getElementById('counter-dms').textContent      = s.dms      ?? 0
+      document.getElementById('counter-comments').textContent = s.comments ?? 0
+
+      // Badges pending par job
+      const pending = s.pending_by_job || {}
+      Object.entries(pending).forEach(([jobId, info]) => {
+        const el = document.getElementById(`pending-${jobId}`)
+        if (!el) return
+        const n = info.pending ?? 0
+        if (n > 0) {
+          el.textContent = `⏳ ${n} cas restant${n > 1 ? 's' : ''}`
+          el.className = 'job-pending-badge'
+          el.style.display = 'inline-flex'
+        } else {
+          el.textContent = `✅ Traité`
+          el.className = 'job-pending-badge done'
+          el.style.display = 'inline-flex'
+        }
+      })
+    } catch(e) {}
+  }
+
+  // ── Results ───────────────────────────────────────────────────────────────
+  let resultsInterval = null
+
+  function startPollingResults() {
+    if (resultsInterval) return
+    resultsInterval = setInterval(() => { loadResults(); loadSessionStats() }, 5000)
+  }
+
+  function stopPollingResults() {
+    clearInterval(resultsInterval)
+    resultsInterval = null
+  }
+
+  async function loadResults() {
+    const res = await fetch('/results')
+    const results = await res.json()
+    renderResults(results)
+  }
+
+  function renderResults(results) {
+    // Affiche dans les deux onglets (results-list dans onglet résultats)
+    const el = document.getElementById('results-list2')
+    if (!el) return
+    if (!results.length) {
+      el.innerHTML = '<div class="empty-state">Aucun résultat pour l\'instant</div>'
+      return
+    }
+    el.innerHTML = results.map(r => `
+      <div class="result-item ${r.status}">
+        <span class="result-icon">${r.status === 'ok' ? '✅' : '❌'}</span>
+        <span class="result-name">${esc(r.name)}</span>
+        <span class="result-action">${esc(r.action)}</span>
+        <span class="result-time">${esc(r.ts)}</span>
+      </div>
+    `).join('')
+  }
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+  async function reconnectLinkedIn() {
+    const btn = document.getElementById('btn-login')
+    btn.disabled = true
+    btn.textContent = '⏳ Ouverture du navigateur...'
+    const res = await fetch('/login', { method: 'POST' })
+    const data = await res.json()
+    appendLog(data.message)
+    btn.textContent = '🔗 Reconnecter LinkedIn'
+    btn.disabled = false
+  }
+
+  // ── Onglets ───────────────────────────────────────────────────────────────
+  let dbPollingInterval = null
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'))
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+    document.getElementById('tab-' + name).classList.add('active')
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      if (b.textContent.toLowerCase().includes(name === 'bot' ? 'bot' : name === 'results' ? 'résultats' : 'base'))
+        b.classList.add('active')
+    })
+
+    if (name === 'db') {
+      loadContacts()
+      loadDbStats()
+      populateJobFilter()
+      if (!dbPollingInterval) {
+        dbPollingInterval = setInterval(() => {
+          loadContacts()
+          loadDbStats()
+        }, 10000)
+      }
+    } else {
+      if (dbPollingInterval) {
+        clearInterval(dbPollingInterval)
+        dbPollingInterval = null
+      }
+    }
+  }
+
+  // ── Base de données ───────────────────────────────────────────────────────
+  const STATUS_LABELS = {
+    a_traiter:    'À traiter',
+    a_connecter:  'À connecter',
+    a_convertir:  'À convertir',
+    en_attente:   'En attente',
+    traite:       'Traité',
+    ignore:       'Ignoré',
+    pending_scan: 'Pending scan',
+  }
+
+  async function loadDbStats() {
+    try {
+      const res  = await fetch('/stats')
+      const data = await res.json()
+      const by   = data.by_status || {}
+
+      // Compteurs journaliers
+      document.getElementById('db-dms-today').textContent      = data.dms_today      ?? 0
+      document.getElementById('db-comments-today').textContent = data.comments_today ?? 0
+
+      // Badges statuts
+      const order = ['a_traiter','a_connecter','a_convertir','en_attente','traite','ignore','pending_scan']
+      const badges = document.getElementById('db-stats-badges')
+      badges.innerHTML = order
+        .filter(s => by[s] > 0)
+        .map(s => `
+          <div class="status-badge badge-${s}">
+            <span class="cnt">${by[s]}</span>
+            ${STATUS_LABELS[s] || s}
+          </div>
+        `).join('')
+    } catch(e) {}
+  }
+
+  async function populateJobFilter() {
+    try {
+      const jobs = await (await fetch('/jobs')).json()
+      const sel  = document.getElementById('db-filter-job')
+      const cur  = sel.value
+      sel.innerHTML = '<option value="">Tous les jobs</option>'
+        + jobs.map(j => `<option value="${esc(j.id)}">${esc(j.label)}</option>`).join('')
+      sel.value = cur
+    } catch(e) {}
+  }
+
+  async function loadContacts() {
+    try {
+      const jobId  = document.getElementById('db-filter-job').value
+      const status = document.getElementById('db-filter-status').value
+      let url = '/contacts'
+      if (jobId) url += `?job_id=${encodeURIComponent(jobId)}`
+      const contacts = await (await fetch(url)).json()
+
+      // Filtre par statut côté JS si nécessaire
+      const filtered = status ? contacts.filter(c => c.status === status) : contacts
+
+      // Charge les jobs pour résoudre les labels
+      const jobs = await (await fetch('/jobs')).json()
+      const jobMap = {}
+      jobs.forEach(j => jobMap[j.id] = j.label)
+
+      renderContactsTable(filtered, jobMap)
+    } catch(e) {
+      console.error('loadContacts error:', e)
+    }
+  }
+
+  function renderContactsTable(contacts, jobMap) {
+    const tbody = document.getElementById('db-tbody')
+    if (!contacts.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:20px;">Aucun contact</td></tr>'
+      return
+    }
+
+    tbody.innerHTML = contacts.map(c => {
+      const lastAction = c.dm_sent_at || c.comment_sent_at || c.connect_sent_at || c.last_scan_at || c.created_at || ''
+      const lastDate   = lastAction ? lastAction.slice(0, 16).replace('T', ' ') : '—'
+      const degClass   = c.degree ? `deg-${c.degree}` : 'deg-null'
+      const degLabel   = c.degree || '?'
+      const jobLabel   = jobMap[c.job_id] || c.job_id || '—'
+
+      return `
+        <tr>
+          <td class="td-name">
+            <a href="${esc(c.profile_url)}" target="_blank" rel="noopener">${esc(c.full_name)}</a>
+          </td>
+          <td><span class="td-degree ${degClass}">${esc(degLabel)}</span></td>
+          <td><span class="st-badge st-${c.status}">${STATUS_LABELS[c.status] || c.status}</span></td>
+          <td style="font-size:12px;color:#666;">${esc(jobLabel)}</td>
+          <td style="font-size:12px;color:#888;white-space:nowrap;">${esc(lastDate)}</td>
+          <td>
+            <button class="btn-reprocess" onclick="reprocessContact('${esc(c.id)}', this)">
+              ↺ Retraiter
+            </button>
+          </td>
+        </tr>
+      `
+    }).join('')
+  }
+
+  async function reprocessContact(contactId, btn) {
+    btn.disabled = true
+    btn.textContent = '...'
+    try {
+      await fetch(`/contacts/${encodeURIComponent(contactId)}/reprocess`, { method: 'POST' })
+      await loadContacts()
+      await loadDbStats()
+    } finally {
+      btn.disabled = false
+      btn.textContent = '↺ Retraiter'
+    }
+  }
+
+  async function triggerScan() {
+    const btn = document.getElementById('btn-scan')
+    btn.disabled = true
+    btn.textContent = '⏳ Scan en cours...'
+    try {
+      const res  = await fetch('/scan', { method: 'POST' })
+      const data = await res.json()
+      appendLog(data.message || (data.ok ? 'Scan lancé' : 'Erreur scan'))
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false
+        btn.textContent = '🔍 Scanner maintenant'
+      }, 5000)
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadJobs()
+  loadResults()
+  fetch('/status').then(r => r.json()).then(d => {
+    setRunning(d.running)
+    if (d.running) startPollingResults()
+  })
+</script>
+
+</body>
+</html>
